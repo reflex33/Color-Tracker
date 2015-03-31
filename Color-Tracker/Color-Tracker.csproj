@@ -30,11 +30,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AForge">
-      <HintPath>..\Libraries\AForge.dll</HintPath>
+    <Reference Include="AForge, Version=2.1.5.0, Culture=neutral, PublicKeyToken=c1db6ff4eaa06aeb, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libraries\AForge.dll</HintPath>
     </Reference>
-    <Reference Include="AForge.Imaging">
-      <HintPath>..\Libraries\AForge.Imaging.dll</HintPath>
+    <Reference Include="AForge.Imaging, Version=2.1.5.0, Culture=neutral, PublicKeyToken=ba8ddea9676ca48b, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Libraries\AForge.Imaging.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -48,6 +50,13 @@
   <ItemGroup>
     <Compile Include="color_tracker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Libraries\AForge.dll" />
+    <Content Include="Libraries\AForge.Imaging.dll" />
+    <Content Include="Libraries\AForge.Imaging.xml" />
+    <Content Include="Libraries\AForge.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
