@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Color-Tracker", "Color-Tracker\Color-Tracker.csproj", "{814F1450-F08E-49E1-B869-52F553645FB9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{FA6D784F-CA7B-4F96-90BD-8F34824B6498}"
+	ProjectSection(SolutionItems) = preProject
+		Libraries\AForge.dll = Libraries\AForge.dll
+		Libraries\AForge.Imaging.dll = Libraries\AForge.Imaging.dll
+		Libraries\AForge.Imaging.xml = Libraries\AForge.Imaging.xml
+		Libraries\AForge.xml = Libraries\AForge.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8897B8ED-34C2-4C2D-BCE7-3F8B0BCCE9AC}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{814F1450-F08E-49E1-B869-52F553645FB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{814F1450-F08E-49E1-B869-52F553645FB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{814F1450-F08E-49E1-B869-52F553645FB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{814F1450-F08E-49E1-B869-52F553645FB9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
