@@ -28,7 +28,8 @@ namespace test
             List<color_finder.found_color_center> output_centers = new List<color_finder.found_color_center>();
 
             DateTime t1 = DateTime.Now;
-            f.find_colors(out output_centers, image);
+            for(int i = 0; i < 30; ++i)
+                f.find_colors(out output_centers, image);
             DateTime t2 = DateTime.Now;
             Console.WriteLine(t2 - t1);
         }
