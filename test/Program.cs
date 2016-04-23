@@ -13,23 +13,38 @@ namespace test
         static void Main(string[] args)
         {
             System.Drawing.Bitmap image = new System.Drawing.Bitmap("test.bmp");
-            color_finder f = new color_finder();
-            color_finder.hsb_filter red = new color_finder.hsb_filter(0.0, 0.05, 0.95, 1.0, 0.95, 1.0);
-            color_finder.hsb_filter blue = new color_finder.hsb_filter(239, 241, 0.95, 1.0, 0.95, 1.0);
-            color_finder.hsb_filter green = new color_finder.hsb_filter(119, 121, 0.95, 1.0, 0.95, 1.0);
-            color_finder.hsb_filter magenta = new color_finder.hsb_filter(299, 301, 0.95, 1.0, 0.95, 1.0);
-            color_finder.hsb_filter white = new color_finder.hsb_filter(0.0, 0.05, 0.0, 0.05, 0.98, 1.0);
-            f.add_color(System.Drawing.Color.Red, red);
-            f.add_color(System.Drawing.Color.Blue, blue);
-            f.add_color(System.Drawing.Color.Green, green);
-            f.add_color(System.Drawing.Color.Magenta, magenta);
-            f.add_color(System.Drawing.Color.White, white);
+            List<color_finder.color_to_find> ctf = new List<color_finder.color_to_find>();
 
-            List<color_finder.found_color_center> output_centers = new List<color_finder.found_color_center>();
+            color_finder.color_to_find red = new color_finder.color_to_find();
+            red.filter = new hsb_filter(0.0, 0.05, 0.95, 1.0, 0.95, 1.0);
+            red.name = System.Drawing.Color.Red;
+            ctf.Add(red);
+
+            color_finder.color_to_find blue = new color_finder.color_to_find();
+            blue.filter = new hsb_filter(239, 241, 0.95, 1.0, 0.95, 1.0);
+            blue.name = System.Drawing.Color.Blue;
+            ctf.Add(blue);
+
+            color_finder.color_to_find green = new color_finder.color_to_find();
+            green.filter = new hsb_filter(119, 121, 0.95, 1.0, 0.95, 1.0);
+            green.name = System.Drawing.Color.Green;
+            ctf.Add(green);
+
+            color_finder.color_to_find magenta = new color_finder.color_to_find();
+            magenta.filter = new hsb_filter(299, 301, 0.95, 1.0, 0.95, 1.0);
+            magenta.name = System.Drawing.Color.Magenta;
+            ctf.Add(magenta);
+
+            color_finder.color_to_find white = new color_finder.color_to_find();
+            white.filter = new hsb_filter(0.0, 0.05, 0.0, 0.05, 0.98, 1.0);
+            white.name = System.Drawing.Color.White;
+            ctf.Add(white);
+
+            List<color_finder.found_color> output = new List<color_finder.found_color>();
 
             DateTime t1 = DateTime.Now;
             for(int i = 0; i < 30; ++i)
-                f.find_colors(out output_centers, image);
+                output = color_finder.find_colors(ctf, image);
             DateTime t2 = DateTime.Now;
             Console.WriteLine(t2 - t1);
         }
