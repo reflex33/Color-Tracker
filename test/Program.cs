@@ -42,11 +42,18 @@ namespace test
 
             List<color_finder.found_color> output = new List<color_finder.found_color>();
 
-            DateTime t1 = DateTime.Now;
-            for(int i = 0; i < 30; ++i)
-                output = color_finder.find_colors(ctf, image);
-            DateTime t2 = DateTime.Now;
-            Console.WriteLine(t2 - t1);
+            try
+            {
+                DateTime t1 = DateTime.Now;
+                for (int i = 0; i < 30; ++i)
+                    output = color_finder.find_colors(ctf, image);
+                DateTime t2 = DateTime.Now;
+                Console.WriteLine(t2 - t1);
+            }
+            catch (System.ArgumentException e)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
     }
 }

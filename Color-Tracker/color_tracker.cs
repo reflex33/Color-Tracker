@@ -163,6 +163,11 @@ namespace tracking
             min_brightness = min_b;
             max_brightness = max_b;
         }
+
+        public bool is_empty
+        {
+            get { return (!filter_hue && !filter_saturation && !filter_brightness); }
+        }
     }
     public class hsb_image
     {
@@ -281,10 +286,10 @@ namespace tracking
 
     public static class color_finder
     {
-        public struct color_to_find
+        public class color_to_find
         {
             public Color name;
-            public hsb_filter filter;
+            public hsb_filter filter = new hsb_filter();
         }
         public struct found_color
         {
@@ -294,7 +299,7 @@ namespace tracking
             {
                 get
                 {
-                    if (location == null)
+                    if (location == null || location.IsEmpty)
                         throw new NullReferenceException("The found color is currently empty!");
 
                     return location.X + (location.Width / 2);
@@ -304,7 +309,7 @@ namespace tracking
             {
                 get
                 {
-                    if (location == null)
+                    if (location == null || location.IsEmpty)
                         throw new NullReferenceException("The found color is currently empty!");
 
                     return location.Y + (location.Height / 2);
@@ -315,6 +320,13 @@ namespace tracking
         public static List<found_color> find_colors(List<color_to_find> colors, Bitmap the_image)
         {
             hsb_image converted_image = new hsb_image(the_image);
+
+            // Check for errors in the colors to find, throw exceptions here so "user" can consume them (errors in the threading below can't throw to the user)
+            foreach (color_to_find ctf in colors)
+            {
+                if (ctf.name.IsEmpty || ctf.filter.is_empty)
+                    throw new System.ArgumentException("Filters must not be empty!");
+            }
 
             BackgroundWorker[] threads = new BackgroundWorker[colors.Count];
             AutoResetEvent[] thread_done = new AutoResetEvent[colors.Count];
