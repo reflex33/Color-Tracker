@@ -4,8 +4,6 @@ using System.Drawing;
 using System.ComponentModel;
 using System.Threading;
 
-using AForge.Imaging;
-
 namespace tracking
 {
     public class hsb_filter
@@ -316,6 +314,15 @@ namespace tracking
                 }
             }
         }
+        private class blob
+        {
+            public int label;
+            public int num_of_pixels = 0;
+            public int min_x = -1;
+            public int min_y = -1;
+            public int max_x = -1;
+            public int max_y = -1;
+        }
 
         public static List<found_color> find_colors(List<color_to_find> colors, Bitmap the_image)
         {
@@ -334,11 +341,10 @@ namespace tracking
             List<found_color> found_colors = new List<found_color>();
             for (int i = 0; i < colors.Count; ++i)
             {
-                copies_of_image[i] = AForge.Imaging.Image.Clone(the_image);
                 threads[i] = new BackgroundWorker();
                 threads[i].DoWork += new DoWorkEventHandler(thread_find_colors);
                 thread_done[i] = new AutoResetEvent(false);
-                Tuple<Bitmap, hsb_image, color_to_find, List<found_color>, AutoResetEvent> work_data = new Tuple<Bitmap, hsb_image, color_to_find, List<found_color>, AutoResetEvent>(copies_of_image[i], converted_image, colors[i], found_colors, thread_done[i]);
+                Tuple<hsb_image, color_to_find, List<found_color>, AutoResetEvent> work_data = new Tuple<hsb_image, color_to_find, List<found_color>, AutoResetEvent>(converted_image, colors[i], found_colors, thread_done[i]);
                 threads[i].RunWorkerAsync(work_data);
             }
 
@@ -350,34 +356,26 @@ namespace tracking
         }
         private static void thread_find_colors(object sender, DoWorkEventArgs e)
         {
-            Tuple<Bitmap, hsb_image, color_to_find, List<found_color>, AutoResetEvent> work_data = (Tuple<Bitmap, hsb_image, color_to_find, List<found_color>, AutoResetEvent>)e.Argument;
-            Bitmap filtered_image = work_data.Item1;
-            hsb_image converted_image = work_data.Item2;
-            color_to_find c = work_data.Item3;
-            List<found_color> output = work_data.Item4;
-            AutoResetEvent done = work_data.Item5;
-            int width = filtered_image.Width;
-            int height = filtered_image.Height;
+            Tuple<hsb_image, color_to_find, List<found_color>, AutoResetEvent> work_data = (Tuple<hsb_image, color_to_find, List<found_color>, AutoResetEvent>)e.Argument;
+            hsb_image converted_image = work_data.Item1;
+            color_to_find c = work_data.Item2;
+            List<found_color> output = work_data.Item3;
+            AutoResetEvent done = work_data.Item4;
+            int width = converted_image.width;
+            int height = converted_image.height;
 
-            // Marshall the image for speed
-            Rectangle rect = new Rectangle(0, 0, width, height);
-            System.Drawing.Imaging.BitmapData bitmap_data = filtered_image.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, filtered_image.PixelFormat);
-            IntPtr Iptr = bitmap_data.Scan0;
-            int step_size = 3;  // 3 bytes per pixel
-            int pixel_count = width * height;
-            byte[] raw_pixel_bytes = new byte[pixel_count * step_size];
-            System.Runtime.InteropServices.Marshal.Copy(Iptr, raw_pixel_bytes, 0, raw_pixel_bytes.Length);
-
-            // Filter image
-            int i;
+            // Filter image and populate blob buffer
             hsb_image.hsb_pixel p;
             double hue;
             double saturation;
             double brightness;
+            int[,] label_buffer = new int[width, height];
+            int label = 1;
+            List<int> label_table = new List<int>();
+            label_table.Add(-1);  // Add a dummy label at the '0' position... makes stuff easier later and matches the notes for blob detection
             for (int x = 0; x < width; ++x)
                 for (int y = 0; y < height; ++y)
                 {
-                    i = ((y * width) + x) * 3;  // 3 bytes per pixel
                     p = converted_image.get_pixel(x, y);  // Stored here to remove redundant function calls below
                     hue = p.hue;                          // Stored here to remove redundant function calls below
                     saturation = p.saturation;            // Stored here to remove redundant function calls below
@@ -385,10 +383,8 @@ namespace tracking
                     if (c.filter.filter_hue)
                         if (hue < c.filter.min_hue || hue > c.filter.max_hue)
                         {
-                            // Set the pixel to black
-                            raw_pixel_bytes[i] = 0;
-                            raw_pixel_bytes[i + 1] = 0;
-                            raw_pixel_bytes[i + 2] = 0;
+                            // Set the label buffer "pixel" to 0
+                            label_buffer[x, y] = 0;
 
                             continue;
                         }
@@ -396,10 +392,8 @@ namespace tracking
                     if (c.filter.filter_saturation)
                         if (saturation < c.filter.min_saturation || saturation > c.filter.max_saturation)
                         {
-                            // Set the pixel to black
-                            raw_pixel_bytes[i] = 0;
-                            raw_pixel_bytes[i + 1] = 0;
-                            raw_pixel_bytes[i + 2] = 0;
+                            // Set the label buffer "pixel" to 0
+                            label_buffer[x, y] = 0;
 
                             continue;
                         }
@@ -407,34 +401,133 @@ namespace tracking
                     if (c.filter.filter_brightness)
                         if (brightness < c.filter.min_brightness || brightness > c.filter.max_brightness)
                         {
-                            // Set the pixel to black
-                            raw_pixel_bytes[i] = 0;
-                            raw_pixel_bytes[i + 1] = 0;
-                            raw_pixel_bytes[i + 2] = 0;
+                            // Set the label buffer "pixel" to 0
+                            label_buffer[x, y] = 0;
+
+                            continue;
                         }
+
+                    //// If we get to this point, the pixel is not filtered out, and therefore should needs a label in the label buffer
+
+                    // Get the four "pixels" for the label kernel
+                    int A_pixel;
+                    if (x - 1 < 0 || y - 1 < 0)  // A_pixel is off the image
+                        A_pixel = 0;
+                    else
+                        A_pixel = label_buffer[x - 1, y - 1];
+                    int B_pixel;
+                    if (y - 1 < 0)  // B_pixel is off the image
+                        B_pixel = 0;
+                    else
+                        B_pixel = label_buffer[x, y - 1];
+                    int C_pixel;
+                    if (y - 1 < 0)  // C_pixel is off the image
+                        C_pixel = 0;
+                    else
+                        C_pixel = label_buffer[x + 1, y - 1];
+                    int D_pixel;
+                    if (x - 1 < 0)  // D_pixel is off the image
+                        D_pixel = 0;
+                    else
+                        D_pixel = label_buffer[x - 1, y];
+
+                    // Apply label kernel
+                    if (A_pixel == 0 && B_pixel == 0 && C_pixel == 0 && D_pixel == 0)  // New label
+                    {
+                        label_buffer[x, y] = label;
+                        label_table.Add(label);
+                        ++label;
+                    }
+                    else
+                    {
+                        int calculated_label = int.MaxValue;
+                        if (A_pixel != 0)
+                            calculated_label = A_pixel;
+                        if (B_pixel != 0 && B_pixel < calculated_label)
+                            calculated_label = B_pixel;
+                        if (C_pixel != 0 && C_pixel < calculated_label)
+                            calculated_label = C_pixel;
+                        if (D_pixel != 0 && D_pixel < calculated_label)
+                            calculated_label = D_pixel;
+
+                        label_buffer[x, y] = calculated_label;
+                        label_table[A_pixel] = calculated_label;
+                        label_table[B_pixel] = calculated_label;
+                        label_table[C_pixel] = calculated_label;
+                        label_table[D_pixel] = calculated_label;
+                    }
                 }
 
-            // Marshal the bytes back into the image
-            System.Runtime.InteropServices.Marshal.Copy(raw_pixel_bytes, 0, Iptr, raw_pixel_bytes.Length);
-            filtered_image.UnlockBits(bitmap_data);
-
-            // Find colors (using BlobCounter of AForge)
-            BlobCounterBase blob_counter = new BlobCounter();
-            blob_counter.FilterBlobs = true;
-            blob_counter.MinWidth = 4;
-            blob_counter.MinHeight = 4;
-            blob_counter.ObjectsOrder = ObjectsOrder.Size;
-            blob_counter.ProcessImage(filtered_image);  // Apply blob filter
-            Blob[] blobs = blob_counter.GetObjectsInformation();  // Extract blobs
-            if (blobs.Length > 0)  // Something was found
+            // Reduce label table
+            for (int i = 1; i < label_table.Count; ++i)
             {
-                found_color new_location = new found_color();
-                new_location.name = c.name;
-                new_location.location = blobs[0].Rectangle;
-                lock (output)
+                if (i == label_table[i])
+                    continue;
+
+                int next_label_entry_to_check = label_table[i];
+                while (next_label_entry_to_check != label_table[next_label_entry_to_check])
+                    next_label_entry_to_check = label_table[next_label_entry_to_check];
+
+                label_table[i] = next_label_entry_to_check;
+            }
+
+            // Find blobs
+            List<blob> blobs = new List<blob>();
+            for (int x = 0; x < width; ++x)
+                for (int y = 0; y < height; ++y)
                 {
-                    output.Add(new_location);
+                    if (label_buffer[x, y] == 0)
+                        continue;
+
+                    int reduced_label = label_table[label_buffer[x, y]];  // Which label does this pixel reduce to?
+
+                    int blob_owner = -1;
+                    for (int i = 0; i < blobs.Count; ++i)
+                        if (blobs[i].label == reduced_label)
+                            blob_owner = i;
+
+                    if (blob_owner == -1)  // New blob
+                    {
+                        blob new_blob = new blob();
+                        ++new_blob.num_of_pixels;
+                        new_blob.min_x = x;
+                        new_blob.min_y = y;
+                        new_blob.max_x = x;
+                        new_blob.max_y = y;
+                        new_blob.label = reduced_label;
+                        blobs.Add(new_blob);
+                    }
+                    else
+                    {
+                        ++blobs[blob_owner].num_of_pixels;
+                        if (x < blobs[blob_owner].min_x)
+                            blobs[blob_owner].min_x = x;
+                        if (y < blobs[blob_owner].min_y)
+                            blobs[blob_owner].min_y = y;
+                        if (x > blobs[blob_owner].max_x)
+                            blobs[blob_owner].max_x = x;
+                        if (y > blobs[blob_owner].max_y)
+                            blobs[blob_owner].max_y = y;
+                    }
                 }
+
+            // Find the largest blob
+            int largest_blob = -1;
+            int largest_blob_pixels = -1;
+            for (int i = 0; i < blobs.Count; ++i)
+                if (blobs[i].num_of_pixels > largest_blob_pixels)
+                    largest_blob = i;
+            Rectangle r = new Rectangle();
+            r.X = blobs[largest_blob].min_x;
+            r.Y = blobs[largest_blob].min_y;
+            r.Width = blobs[largest_blob].max_x - r.X + 1;
+            r.Height = blobs[largest_blob].max_y - r.Y + 1;
+            found_color new_location = new found_color();
+            new_location.name = c.name;
+            new_location.location = r;
+            lock (output)
+            {
+                output.Add(new_location);
             }
 
             done.Set();  // Report done
