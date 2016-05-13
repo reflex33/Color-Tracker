@@ -230,7 +230,7 @@ namespace hsb
             if (System.Drawing.Bitmap.GetPixelFormatSize(input_image.PixelFormat) != 24)
                 throw new System.ArgumentException("Input image must be 24bit color depth");
 
-            int NUM_OF_THREADS = 8;
+            int NUM_OF_THREADS = Environment.ProcessorCount;
             width = input_image.Width;
             height = input_image.Height;
 
