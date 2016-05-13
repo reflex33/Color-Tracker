@@ -6,6 +6,12 @@ using System.Threading;
 
 namespace hsb_image
 {
+    public struct hsb_pixel
+    {
+        public double hue;
+        public double saturation;
+        public double brightness;
+    }
     public class hsb_filter
     {
         private bool _filter_hue = false;
@@ -169,13 +175,6 @@ namespace hsb_image
     }
     public class hsb_image
     {
-        public struct hsb_pixel
-        {
-            public double hue;
-            public double saturation;
-            public double brightness;
-        }
-
         private hsb_pixel[,] the_image;
         public int width { get; private set; }
         public int height { get; private set; }
