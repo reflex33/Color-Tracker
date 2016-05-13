@@ -49,15 +49,15 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Color-Tracker\Color-Tracker.csproj">
-      <Project>{814f1450-f08e-49e1-b869-52f553645fb9}</Project>
-      <Name>Color-Tracker</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="test.bmp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\hsb_image\hsb_image.csproj">
+      <Project>{814f1450-f08e-49e1-b869-52f553645fb9}</Project>
+      <Name>hsb_image</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
