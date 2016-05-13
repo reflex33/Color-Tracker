@@ -4,7 +4,7 @@ using System.Drawing;
 using System.ComponentModel;
 using System.Threading;
 
-namespace tracking
+namespace hsb_image
 {
     public class hsb_filter
     {
