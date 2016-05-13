@@ -14,6 +14,8 @@ namespace hsb_image
     }
     public class hsb_filter
     {
+        public Color name = new Color();
+
         private bool _filter_hue = false;
         public bool filter_hue
         {
@@ -283,11 +285,6 @@ namespace hsb_image
 
     public static class color_finder
     {
-        public class search_color
-        {
-            public Color name;
-            public hsb_filter filter = new hsb_filter();
-        }
         public struct found_color
         {
             public Color name;
