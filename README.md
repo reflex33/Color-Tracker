@@ -1,5 +1,5 @@
-# c# Color Tracker
-This is a class that takes an image and color filter.  It then finds the largest blob of that color in the image.
+# c# HSB Image
+This is a for handling HSB images in C#
 
 ## TODO
 N/A
