@@ -366,13 +366,13 @@ namespace hsb
             int label = 1;
             List<int> label_table = new List<int>();
             label_table.Add(-1);  // Add a dummy label at the '0' position... makes stuff easier later and matches the notes for blob detection
-            for (int y = 0; y < height; ++y)
-                for (int x = 0; x < width; ++x)
+            for (int x = 0; x < width; ++x)
+                for (int y = 0; y < height; ++y)
                 {
-                    p = get_pixel(x, y);  // Stored here to remove redundant function calls below
-                    hue = p.hue;                          // Stored here to remove redundant function calls below
-                    saturation = p.saturation;            // Stored here to remove redundant function calls below
-                    brightness = p.brightness;            // Stored here to remove redundant function calls below
+                    p = get_pixel(x, y);        // Stored here to remove redundant function calls below
+                    hue = p.hue;                // Stored here to remove redundant function calls below
+                    saturation = p.saturation;  // Stored here to remove redundant function calls below
+                    brightness = p.brightness;  // Stored here to remove redundant function calls below
                     if (color.filter_hue)
                         if (hue < color.min_hue || hue > color.max_hue)
                         {
@@ -403,20 +403,20 @@ namespace hsb
                     else
                         A_pixel = label_buffer[x - 1, y - 1];
                     int B_pixel;
-                    if (y - 1 < 0)  // B_pixel is off the image
+                    if (x - 1 < 0)  // B_pixel is off the image
                         B_pixel = 0;
                     else
-                        B_pixel = label_buffer[x, y - 1];
+                        B_pixel = label_buffer[x - 1, y];
                     int C_pixel;
-                    if (x + 1 > width - 1 || y - 1 < 0)  // C_pixel is off the image
+                    if (x - 1 < 0 || y + 1 >= height)  // C_pixel is off the image
                         C_pixel = 0;
                     else
-                        C_pixel = label_buffer[x + 1, y - 1];
+                        C_pixel = label_buffer[x - 1, y + 1];
                     int D_pixel;
-                    if (x - 1 < 0)  // D_pixel is off the image
+                    if (y - 1 < 0)  // D_pixel is off the image
                         D_pixel = 0;
                     else
-                        D_pixel = label_buffer[x - 1, y];
+                        D_pixel = label_buffer[x, y - 1];
 
                     // Apply label kernel
                     if (A_pixel == 0 && B_pixel == 0 && C_pixel == 0 && D_pixel == 0)  // New label
