@@ -6,6 +6,38 @@ using System.Threading;
 
 namespace hsb_image
 {
+    public class blob
+    {
+        public int num_of_pixels { get; internal set; } = 0;
+        public Color color { get; internal set; }
+        public Rectangle rectangle { get; internal set; }
+        public int center_x
+        {
+            get
+            {
+                if (rectangle == null || rectangle.IsEmpty)
+                    throw new NullReferenceException("The blob is currently empty!");
+
+                return rectangle.X + (rectangle.Width / 2);
+            }
+        }
+        public int center_y
+        {
+            get
+            {
+                if (rectangle == null || rectangle.IsEmpty)
+                    throw new NullReferenceException("The blob is currently empty!");
+
+                return rectangle.Y + (rectangle.Height / 2);
+            }
+        }
+
+        internal int label;
+        internal int min_x = -1;
+        internal int min_y = -1;
+        internal int max_x = -1;
+        internal int max_y = -1;
+    }
     public struct hsb_pixel
     {
         public double hue;
@@ -285,41 +317,6 @@ namespace hsb_image
 
     public static class color_finder
     {
-        public struct found_color
-        {
-            public Color name;
-            public Rectangle location;
-            public int x
-            {
-                get
-                {
-                    if (location == null || location.IsEmpty)
-                        throw new NullReferenceException("The found color is currently empty!");
-
-                    return location.X + (location.Width / 2);
-                }
-            }
-            public int y
-            {
-                get
-                {
-                    if (location == null || location.IsEmpty)
-                        throw new NullReferenceException("The found color is currently empty!");
-
-                    return location.Y + (location.Height / 2);
-                }
-            }
-        }
-        private class blob
-        {
-            public int label;
-            public int num_of_pixels = 0;
-            public int min_x = -1;
-            public int min_y = -1;
-            public int max_x = -1;
-            public int max_y = -1;
-        }
-
         public static List<found_color> find_colors(List<search_color> colors, Bitmap the_image)
         {
             hsb_image converted_image = new hsb_image(the_image);
