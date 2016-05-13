@@ -373,8 +373,8 @@ namespace tracking
             int label = 1;
             List<int> label_table = new List<int>();
             label_table.Add(-1);  // Add a dummy label at the '0' position... makes stuff easier later and matches the notes for blob detection
-            for (int x = 0; x < width; ++x)
-                for (int y = 0; y < height; ++y)
+            for (int y = 0; y < height; ++y)
+                for (int x = 0; x < width; ++x)
                 {
                     p = image.get_pixel(x, y);  // Stored here to remove redundant function calls below
                     hue = p.hue;                          // Stored here to remove redundant function calls below
@@ -415,7 +415,7 @@ namespace tracking
                     else
                         B_pixel = label_buffer[x, y - 1];
                     int C_pixel;
-                    if (y - 1 < 0)  // C_pixel is off the image
+                    if (x + 1 > width - 1 || y - 1 < 0)  // C_pixel is off the image
                         C_pixel = 0;
                     else
                         C_pixel = label_buffer[x + 1, y - 1];
@@ -514,17 +514,20 @@ namespace tracking
             for (int i = 0; i < blobs.Count; ++i)
                 if (blobs[i].num_of_pixels > largest_blob_pixels)
                     largest_blob = i;
-            Rectangle r = new Rectangle();
-            r.X = blobs[largest_blob].min_x;
-            r.Y = blobs[largest_blob].min_y;
-            r.Width = blobs[largest_blob].max_x - r.X + 1;
-            r.Height = blobs[largest_blob].max_y - r.Y + 1;
-            found_color new_location = new found_color();
-            new_location.name = color.name;
-            new_location.location = r;
-            lock (output)
+            if (largest_blob >= 0)
             {
-                output.Add(new_location);
+                Rectangle r = new Rectangle();
+                r.X = blobs[largest_blob].min_x;
+                r.Y = blobs[largest_blob].min_y;
+                r.Width = blobs[largest_blob].max_x - r.X + 1;
+                r.Height = blobs[largest_blob].max_y - r.Y + 1;
+                found_color new_location = new found_color();
+                new_location.name = color.name;
+                new_location.location = r;
+                lock (output)
+                {
+                    output.Add(new_location);
+                }
             }
 
             done.Set();  // Report done
