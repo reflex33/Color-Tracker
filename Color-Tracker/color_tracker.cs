@@ -284,7 +284,7 @@ namespace tracking
 
     public static class color_finder
     {
-        public class color_to_find
+        public class search_color
         {
             public Color name;
             public hsb_filter filter = new hsb_filter();
@@ -324,14 +324,14 @@ namespace tracking
             public int max_y = -1;
         }
 
-        public static List<found_color> find_colors(List<color_to_find> colors, Bitmap the_image)
+        public static List<found_color> find_colors(List<search_color> colors, Bitmap the_image)
         {
             hsb_image converted_image = new hsb_image(the_image);
 
             // Check for errors in the colors to find, throw exceptions here so "user" can consume them (errors in the threading below can't throw to the user)
-            foreach (color_to_find ctf in colors)
+            foreach (search_color color_to_find in colors)
             {
-                if (ctf.name.IsEmpty || ctf.filter.is_empty)
+                if (color_to_find.name.IsEmpty || color_to_find.filter.is_empty)
                     throw new System.ArgumentException("Filters must not be empty!");
             }
 
@@ -344,7 +344,7 @@ namespace tracking
                 threads[i] = new BackgroundWorker();
                 threads[i].DoWork += new DoWorkEventHandler(thread_find_colors);
                 thread_done[i] = new AutoResetEvent(false);
-                Tuple<hsb_image, color_to_find, List<found_color>, AutoResetEvent> work_data = new Tuple<hsb_image, color_to_find, List<found_color>, AutoResetEvent>(converted_image, colors[i], found_colors, thread_done[i]);
+                Tuple<hsb_image, search_color, List<found_color>, AutoResetEvent> work_data = new Tuple<hsb_image, search_color, List<found_color>, AutoResetEvent>(converted_image, colors[i], found_colors, thread_done[i]);
                 threads[i].RunWorkerAsync(work_data);
             }
 
@@ -356,13 +356,13 @@ namespace tracking
         }
         private static void thread_find_colors(object sender, DoWorkEventArgs e)
         {
-            Tuple<hsb_image, color_to_find, List<found_color>, AutoResetEvent> work_data = (Tuple<hsb_image, color_to_find, List<found_color>, AutoResetEvent>)e.Argument;
-            hsb_image converted_image = work_data.Item1;
-            color_to_find c = work_data.Item2;
+            Tuple<hsb_image, search_color, List<found_color>, AutoResetEvent> work_data = (Tuple<hsb_image, search_color, List<found_color>, AutoResetEvent>)e.Argument;
+            hsb_image image = work_data.Item1;
+            search_color color = work_data.Item2;
             List<found_color> output = work_data.Item3;
             AutoResetEvent done = work_data.Item4;
-            int width = converted_image.width;
-            int height = converted_image.height;
+            int width = image.width;
+            int height = image.height;
 
             // Filter image and populate blob buffer
             hsb_image.hsb_pixel p;
@@ -376,38 +376,32 @@ namespace tracking
             for (int x = 0; x < width; ++x)
                 for (int y = 0; y < height; ++y)
                 {
-                    p = converted_image.get_pixel(x, y);  // Stored here to remove redundant function calls below
+                    p = image.get_pixel(x, y);  // Stored here to remove redundant function calls below
                     hue = p.hue;                          // Stored here to remove redundant function calls below
                     saturation = p.saturation;            // Stored here to remove redundant function calls below
                     brightness = p.brightness;            // Stored here to remove redundant function calls below
-                    if (c.filter.filter_hue)
-                        if (hue < c.filter.min_hue || hue > c.filter.max_hue)
+                    if (color.filter.filter_hue)
+                        if (hue < color.filter.min_hue || hue > color.filter.max_hue)
                         {
-                            // Set the label buffer "pixel" to 0
-                            label_buffer[x, y] = 0;
-
+                            label_buffer[x, y] = 0;  // Set the label buffer "pixel" to 0
                             continue;
                         }
 
-                    if (c.filter.filter_saturation)
-                        if (saturation < c.filter.min_saturation || saturation > c.filter.max_saturation)
+                    if (color.filter.filter_saturation)
+                        if (saturation < color.filter.min_saturation || saturation > color.filter.max_saturation)
                         {
-                            // Set the label buffer "pixel" to 0
-                            label_buffer[x, y] = 0;
-
+                            label_buffer[x, y] = 0;  // Set the label buffer "pixel" to 0
                             continue;
                         }
 
-                    if (c.filter.filter_brightness)
-                        if (brightness < c.filter.min_brightness || brightness > c.filter.max_brightness)
+                    if (color.filter.filter_brightness)
+                        if (brightness < color.filter.min_brightness || brightness > color.filter.max_brightness)
                         {
-                            // Set the label buffer "pixel" to 0
-                            label_buffer[x, y] = 0;
-
+                            label_buffer[x, y] = 0;// Set the label buffer "pixel" to 0
                             continue;
                         }
 
-                    //// If we get to this point, the pixel is not filtered out, and therefore should needs a label in the label buffer
+                    //// If we get to this point, the pixel is not filtered out, and therefore should needs a label in the label buffer ////
 
                     // Get the four "pixels" for the label kernel
                     int A_pixel;
@@ -440,6 +434,7 @@ namespace tracking
                     }
                     else
                     {
+                        // Find the lowest label number that isn't zero
                         int calculated_label = int.MaxValue;
                         if (A_pixel != 0)
                             calculated_label = A_pixel;
@@ -450,6 +445,8 @@ namespace tracking
                         if (D_pixel != 0 && D_pixel < calculated_label)
                             calculated_label = D_pixel;
 
+                        // The "pixel" in the buffer is the calculated value.
+                        // Also update the label table indicating if two blobs are connected
                         label_buffer[x, y] = calculated_label;
                         label_table[A_pixel] = calculated_label;
                         label_table[B_pixel] = calculated_label;
@@ -523,7 +520,7 @@ namespace tracking
             r.Width = blobs[largest_blob].max_x - r.X + 1;
             r.Height = blobs[largest_blob].max_y - r.Y + 1;
             found_color new_location = new found_color();
-            new_location.name = c.name;
+            new_location.name = color.name;
             new_location.location = r;
             lock (output)
             {
