@@ -4,7 +4,7 @@ using System.Drawing;
 using System.ComponentModel;
 using System.Threading;
 
-namespace hsb_image
+namespace hsb
 {
     public class blob
     {
@@ -313,31 +313,34 @@ namespace hsb_image
 
             return the_image[x, y];
         }
-    }
 
-    public static class color_finder
-    {
-        public static List<found_color> find_colors(List<search_color> colors, Bitmap the_image)
+        /// <summary>
+        /// Finds colors within the image.  Only returns the largest blob (by number of pixels) of the that color.
+        /// </summary>
+        /// <param name="colors">The colors to search for</param>
+        /// <returns>The largest blob (by number of pixels) of each color</returns>
+        public List<blob> find_colors(List<hsb_filter> colors)
         {
-            hsb_image converted_image = new hsb_image(the_image);
+            if (the_image == null)
+                throw new NullReferenceException("Image is empty!");
 
             // Check for errors in the colors to find, throw exceptions here so "user" can consume them (errors in the threading below can't throw to the user)
-            foreach (search_color color_to_find in colors)
+            foreach (hsb_filter color_to_find in colors)
             {
-                if (color_to_find.name.IsEmpty || color_to_find.filter.is_empty)
+                if (color_to_find.name.IsEmpty || color_to_find.is_empty)
                     throw new System.ArgumentException("Filters must not be empty!");
             }
 
             BackgroundWorker[] threads = new BackgroundWorker[colors.Count];
             AutoResetEvent[] thread_done = new AutoResetEvent[colors.Count];
             Bitmap[] copies_of_image = new Bitmap[colors.Count];
-            List<found_color> found_colors = new List<found_color>();
+            List<blob> found_colors = new List<blob>();
             for (int i = 0; i < colors.Count; ++i)
             {
                 threads[i] = new BackgroundWorker();
                 threads[i].DoWork += new DoWorkEventHandler(thread_find_colors);
                 thread_done[i] = new AutoResetEvent(false);
-                Tuple<hsb_image, search_color, List<found_color>, AutoResetEvent> work_data = new Tuple<hsb_image, search_color, List<found_color>, AutoResetEvent>(converted_image, colors[i], found_colors, thread_done[i]);
+                Tuple<hsb_filter, List<blob>, AutoResetEvent> work_data = new Tuple<hsb_filter, List<blob>, AutoResetEvent>(colors[i], found_colors, thread_done[i]);
                 threads[i].RunWorkerAsync(work_data);
             }
 
@@ -347,18 +350,15 @@ namespace hsb_image
             // Output
             return found_colors;
         }
-        private static void thread_find_colors(object sender, DoWorkEventArgs e)
+        private void thread_find_colors(object sender, DoWorkEventArgs e)
         {
-            Tuple<hsb_image, search_color, List<found_color>, AutoResetEvent> work_data = (Tuple<hsb_image, search_color, List<found_color>, AutoResetEvent>)e.Argument;
-            hsb_image image = work_data.Item1;
-            search_color color = work_data.Item2;
-            List<found_color> output = work_data.Item3;
-            AutoResetEvent done = work_data.Item4;
-            int width = image.width;
-            int height = image.height;
+            Tuple<hsb_filter, List<blob>, AutoResetEvent> work_data = (Tuple<hsb_filter, List<blob>, AutoResetEvent>)e.Argument;
+            hsb_filter color = work_data.Item1;
+            List<blob> output = work_data.Item2;
+            AutoResetEvent done = work_data.Item3;
 
             // Filter image and populate blob buffer
-            hsb_image.hsb_pixel p;
+            hsb_pixel p;
             double hue;
             double saturation;
             double brightness;
@@ -369,26 +369,26 @@ namespace hsb_image
             for (int y = 0; y < height; ++y)
                 for (int x = 0; x < width; ++x)
                 {
-                    p = image.get_pixel(x, y);  // Stored here to remove redundant function calls below
+                    p = get_pixel(x, y);  // Stored here to remove redundant function calls below
                     hue = p.hue;                          // Stored here to remove redundant function calls below
                     saturation = p.saturation;            // Stored here to remove redundant function calls below
                     brightness = p.brightness;            // Stored here to remove redundant function calls below
-                    if (color.filter.filter_hue)
-                        if (hue < color.filter.min_hue || hue > color.filter.max_hue)
+                    if (color.filter_hue)
+                        if (hue < color.min_hue || hue > color.max_hue)
                         {
                             label_buffer[x, y] = 0;  // Set the label buffer "pixel" to 0
                             continue;
                         }
 
-                    if (color.filter.filter_saturation)
-                        if (saturation < color.filter.min_saturation || saturation > color.filter.max_saturation)
+                    if (color.filter_saturation)
+                        if (saturation < color.min_saturation || saturation > color.max_saturation)
                         {
                             label_buffer[x, y] = 0;  // Set the label buffer "pixel" to 0
                             continue;
                         }
 
-                    if (color.filter.filter_brightness)
-                        if (brightness < color.filter.min_brightness || brightness > color.filter.max_brightness)
+                    if (color.filter_brightness)
+                        if (brightness < color.min_brightness || brightness > color.max_brightness)
                         {
                             label_buffer[x, y] = 0;// Set the label buffer "pixel" to 0
                             continue;
@@ -514,9 +514,9 @@ namespace hsb_image
                 r.Y = blobs[largest_blob].min_y;
                 r.Width = blobs[largest_blob].max_x - r.X + 1;
                 r.Height = blobs[largest_blob].max_y - r.Y + 1;
-                found_color new_location = new found_color();
-                new_location.name = color.name;
-                new_location.location = r;
+                blob new_location = new blob();
+                new_location.color = color.name;
+                new_location.rectangle = r;
                 lock (output)
                 {
                     output.Add(new_location);
