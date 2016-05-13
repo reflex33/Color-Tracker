@@ -9,7 +9,7 @@ namespace hsb
     public class blob
     {
         public int num_of_pixels { get; internal set; } = 0;
-        public Color color { get; internal set; }
+        public string name { get; internal set; }
         public Rectangle rectangle { get; internal set; }
         public int center_x
         {
@@ -46,7 +46,7 @@ namespace hsb
     }
     public class hsb_filter
     {
-        public Color name = new Color();
+        public string name;
 
         private bool _filter_hue = false;
         public bool filter_hue
@@ -204,7 +204,7 @@ namespace hsb
 
         public bool is_empty
         {
-            get { return (!filter_hue && !filter_saturation && !filter_brightness); }
+            get { return (name == null || (!filter_hue && !filter_saturation && !filter_brightness)); }
         }
     }
     public class hsb_image
@@ -327,7 +327,7 @@ namespace hsb
             // Check for errors in the colors to find, throw exceptions here so "user" can consume them (errors in the threading below can't throw to the user)
             foreach (hsb_filter color_to_find in colors)
             {
-                if (color_to_find.name.IsEmpty || color_to_find.is_empty)
+                if (color_to_find.is_empty)
                     throw new System.ArgumentException("Filters must not be empty!");
             }
 
@@ -515,7 +515,7 @@ namespace hsb
                 r.Width = blobs[largest_blob].max_x - r.X + 1;
                 r.Height = blobs[largest_blob].max_y - r.Y + 1;
                 blob new_location = new blob();
-                new_location.color = color.name;
+                new_location.name = color.name;
                 new_location.rectangle = r;
                 lock (output)
                 {
