@@ -10,33 +10,50 @@ namespace hsb
     {
         public int num_of_pixels { get; internal set; } = 0;
         public string name { get; internal set; }
-        public Rectangle rectangle { get; internal set; }
+        public Rectangle rectangle
+        {
+            get
+            {
+                if (num_of_pixels <= 0)
+                    throw new NullReferenceException("The blob is currently empty!");
+
+                return new Rectangle(left, top, width, height);
+            }
+        }
         public int center_x
         {
             get
             {
-                if (rectangle == null || rectangle.IsEmpty)
+                if (num_of_pixels <= 0)
                     throw new NullReferenceException("The blob is currently empty!");
 
-                return rectangle.X + (rectangle.Width / 2);
+                return (left + width / 2);
             }
         }
         public int center_y
         {
             get
             {
-                if (rectangle == null || rectangle.IsEmpty)
+                if (num_of_pixels <= 0)
                     throw new NullReferenceException("The blob is currently empty!");
 
-                return rectangle.Y + (rectangle.Height / 2);
+                return (top + height / 2);
             }
+        }
+        public int width
+        {
+            get { return (right - left + 1); }
+        }
+        public int height
+        {
+            get { return (bottom - top + 1); }
         }
 
         internal int label;
-        internal int min_x = -1;
-        internal int min_y = -1;
-        internal int max_x = -1;
-        internal int max_y = -1;
+        public int left { get; internal set; }
+        public int top { get; internal set; }
+        public int right { get; internal set; }
+        public int bottom { get; internal set; }
     }
     public struct hsb_pixel
     {
@@ -479,25 +496,26 @@ namespace hsb
                     if (blob_owner == -1)  // New blob
                     {
                         blob new_blob = new blob();
-                        ++new_blob.num_of_pixels;
-                        new_blob.min_x = x;
-                        new_blob.min_y = y;
-                        new_blob.max_x = x;
-                        new_blob.max_y = y;
+                        new_blob.name = color.name;
+                        new_blob.num_of_pixels = 1;
+                        new_blob.left = x;
+                        new_blob.top = y;
+                        new_blob.right = x;
+                        new_blob.bottom = y;
                         new_blob.label = reduced_label;
                         blobs.Add(new_blob);
                     }
                     else
                     {
                         ++blobs[blob_owner].num_of_pixels;
-                        if (x < blobs[blob_owner].min_x)
-                            blobs[blob_owner].min_x = x;
-                        if (y < blobs[blob_owner].min_y)
-                            blobs[blob_owner].min_y = y;
-                        if (x > blobs[blob_owner].max_x)
-                            blobs[blob_owner].max_x = x;
-                        if (y > blobs[blob_owner].max_y)
-                            blobs[blob_owner].max_y = y;
+                        if (x < blobs[blob_owner].left)
+                            blobs[blob_owner].left = x;
+                        if (y < blobs[blob_owner].top)
+                            blobs[blob_owner].top = y;
+                        if (x > blobs[blob_owner].right)
+                            blobs[blob_owner].right = x;
+                        if (y > blobs[blob_owner].bottom)
+                            blobs[blob_owner].bottom = y;
                     }
                 }
 
@@ -509,17 +527,18 @@ namespace hsb
                     largest_blob = i;
             if (largest_blob >= 0)
             {
-                Rectangle r = new Rectangle();
-                r.X = blobs[largest_blob].min_x;
-                r.Y = blobs[largest_blob].min_y;
-                r.Width = blobs[largest_blob].max_x - r.X + 1;
-                r.Height = blobs[largest_blob].max_y - r.Y + 1;
-                blob new_location = new blob();
-                new_location.name = color.name;
-                new_location.rectangle = r;
+                //Rectangle r = new Rectangle();
+                //r.X = blobs[largest_blob].min_x;
+                //r.Y = blobs[largest_blob].min_y;
+                //r.Width = blobs[largest_blob].max_x - r.X + 1;
+                //r.Height = blobs[largest_blob].max_y - r.Y + 1;
+                //blobs[largest_blob].rectangle = r;
+                //blob new_location = new blob();
+                //new_location.name = color.name;
+                //new_location.rectangle = r;
                 lock (output)
                 {
-                    output.Add(new_location);
+                    output.Add(blobs[largest_blob]);
                 }
             }
 
