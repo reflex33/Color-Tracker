@@ -255,9 +255,8 @@ namespace hsb
             Rectangle rect = new Rectangle(0, 0, width, height);
             System.Drawing.Imaging.BitmapData bitmap_data = input_image.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, input_image.PixelFormat);
             IntPtr Iptr = bitmap_data.Scan0;
-            int step_size = 3;  // 3 bytes per pixel
-            int pixel_count = width * height;
-            raw_input_pixel_bytes = new byte[pixel_count * step_size];
+            int image_stride = bitmap_data.Stride;
+            raw_input_pixel_bytes = new byte[image_stride * height];
             System.Runtime.InteropServices.Marshal.Copy(Iptr, raw_input_pixel_bytes, 0, raw_input_pixel_bytes.Length);
             input_image.UnlockBits(bitmap_data);
             the_image = new hsb_pixel[width, height];
@@ -270,11 +269,11 @@ namespace hsb
                 threads[i] = new BackgroundWorker();
                 threads[i].DoWork += new DoWorkEventHandler(thread_convert_image);
                 thread_done[i] = new AutoResetEvent(false);
-                Tuple<int, int, AutoResetEvent> work_data;
+                Tuple<int, int, int, AutoResetEvent> work_data;
                 if (i == NUM_OF_THREADS - 1)  // Make sure to get all of the rows of the image in the last thread, fixes if we have a non-whole-number of rows after dividing up the work
-                    work_data = new Tuple<int, int, AutoResetEvent>(i * num_of_lines, height, thread_done[i]);
+                    work_data = new Tuple<int, int, int, AutoResetEvent>(i * num_of_lines, height, image_stride, thread_done[i]);
                 else
-                    work_data = new Tuple<int, int, AutoResetEvent>(i * num_of_lines, (i + 1) * num_of_lines, thread_done[i]);
+                    work_data = new Tuple<int, int, int, AutoResetEvent>(i * num_of_lines, (i + 1) * num_of_lines, image_stride, thread_done[i]);
                 threads[i].RunWorkerAsync(work_data);
             }
 
@@ -283,15 +282,16 @@ namespace hsb
         }
         private void thread_convert_image(object sender, DoWorkEventArgs e)
         {
-            Tuple<int, int, AutoResetEvent> work_data = (Tuple<int, int, AutoResetEvent>)e.Argument;
+            Tuple<int, int, int, AutoResetEvent> work_data = (Tuple<int, int, int, AutoResetEvent>)e.Argument;
             int start_row = work_data.Item1;
             int end_row = work_data.Item2;  // Don't actually process this row, stop one short of it
-            AutoResetEvent done = work_data.Item3;
+            int stride = work_data.Item3;
+            AutoResetEvent done = work_data.Item4;
 
             for (int x = 0; x < width; ++x)
                 for (int y = work_data.Item1; y < work_data.Item2; ++y)
                 {
-                    int i = ((y * width) + x) * 3;  // 3 bytes per pixel
+                    int i = ((y * stride) + x * 3);  // 3 bytes per pixel
                     double B = raw_input_pixel_bytes[i] / 255.0;
                     double G = raw_input_pixel_bytes[i + 1] / 255.0;
                     double R = raw_input_pixel_bytes[i + 2] / 255.0;
@@ -527,15 +527,6 @@ namespace hsb
                     largest_blob = i;
             if (largest_blob >= 0)
             {
-                //Rectangle r = new Rectangle();
-                //r.X = blobs[largest_blob].min_x;
-                //r.Y = blobs[largest_blob].min_y;
-                //r.Width = blobs[largest_blob].max_x - r.X + 1;
-                //r.Height = blobs[largest_blob].max_y - r.Y + 1;
-                //blobs[largest_blob].rectangle = r;
-                //blob new_location = new blob();
-                //new_location.name = color.name;
-                //new_location.rectangle = r;
                 lock (output)
                 {
                     output.Add(blobs[largest_blob]);
