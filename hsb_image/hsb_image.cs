@@ -288,7 +288,7 @@ namespace hsb
             int stride = work_data.Item3;
             AutoResetEvent done = work_data.Item4;
 
-            for (int x = 0; x < width; ++x)
+            for (int x = 0; x < width; ++x)  // These for loops should be swaped in order.  The other way should lead to traversing the array in order, and therefore faster because less cache misses.  But it is slower that way for some unknown reason.
                 for (int y = work_data.Item1; y < work_data.Item2; ++y)
                 {
                     int i = ((y * stride) + x * 3);  // 3 bytes per pixel
@@ -386,7 +386,7 @@ namespace hsb
             for (int x = 0; x < width; ++x)
                 for (int y = 0; y < height; ++y)
                 {
-                    p = get_pixel(x, y);        // Stored here to remove redundant function calls below
+                    p = the_image[x, y];        // Stored here to remove redundant function calls below
                     hue = p.hue;                // Stored here to remove redundant function calls below
                     saturation = p.saturation;  // Stored here to remove redundant function calls below
                     brightness = p.brightness;  // Stored here to remove redundant function calls below
