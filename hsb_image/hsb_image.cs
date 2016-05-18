@@ -524,7 +524,10 @@ namespace hsb
             int largest_blob_pixels = -1;
             for (int i = 0; i < blobs.Count; ++i)
                 if (blobs[i].num_of_pixels > largest_blob_pixels)
+                {
                     largest_blob = i;
+                    largest_blob_pixels = blobs[i].num_of_pixels;
+                }
             if (largest_blob >= 0)
             {
                 lock (output)
